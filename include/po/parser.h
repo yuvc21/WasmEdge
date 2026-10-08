@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <fmt/format.h>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 namespace WasmEdge {
@@ -29,6 +30,14 @@ inline cxx20::expected<ResultT, Error>
 stringToInteger(ConvResultT (&Conv)(const char *, char **, int),
                 std::string Value) noexcept {
   using namespace std::literals;
+  if constexpr (std::is_unsigned_v<ResultT>) {
+    const auto Pos = Value.find_first_not_of(" \t\n\v\f\r");
+    if (Pos != std::string::npos && Value[Pos] == '-') {
+      return cxx20::unexpected<Error>(
+          std::in_place, ErrCode::InvalidArgument,
+          fmt::format("invalid integer value: {}"sv, Value));
+    }
+  }
   char *EndPtr;
   const char *CStr = Value.c_str();
   auto SavedErrNo = std::exchange(errno, 0);

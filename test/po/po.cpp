@@ -6,6 +6,7 @@
 #include "po/option.h"
 #include <cctype>
 #include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <string>
 #include <string_view>
@@ -113,3 +114,40 @@ INSTANTIATE_TEST_SUITE_P(
       }
       return Name;
     });
+
+TEST(UnsignedIntegerOption, RejectsNegativeValue) {
+  Option<uint64_t> Opt(Description("test"sv));
+  ArgumentParser ArgParser;
+  ArgParser.add_option("time-limit"sv, Opt);
+
+  const char *Args[] = {"test", "--time-limit=-1"};
+  EXPECT_FALSE(ArgParser.parse(stdout, 2, Args));
+}
+
+TEST(UnsignedIntegerOption, RejectsNegativeValueWithLeadingSpace) {
+  Option<uint64_t> Opt(Description("test"sv));
+  ArgumentParser ArgParser;
+  ArgParser.add_option("time-limit"sv, Opt);
+
+  const char *Args[] = {"test", "--time-limit= -1"};
+  EXPECT_FALSE(ArgParser.parse(stdout, 2, Args));
+}
+
+TEST(UnsignedIntegerOption, RejectsNegativeStackSizeLimit) {
+  Option<uint64_t> Opt(Description("test"sv));
+  ArgumentParser ArgParser;
+  ArgParser.add_option("stack-size-limit"sv, Opt);
+
+  const char *Args[] = {"test", "--stack-size-limit=-1"};
+  EXPECT_FALSE(ArgParser.parse(stdout, 2, Args));
+}
+
+TEST(UnsignedIntegerOption, AcceptsMaxValue) {
+  Option<uint64_t> Opt(Description("test"sv));
+  ArgumentParser ArgParser;
+  ArgParser.add_option("time-limit"sv, Opt);
+
+  const char *Args[] = {"test", "--time-limit=18446744073709551615"};
+  EXPECT_TRUE(ArgParser.parse(stdout, 2, Args));
+  EXPECT_EQ(Opt.value(), UINT64_MAX);
+}
